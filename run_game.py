@@ -1,3 +1,4 @@
+# --- Bot Tu Tien V3 Gold Finalized ---
 import asyncio
 
 # --- Hệ thống Bot Tu Tiên V3 Gold - Khởi động ---
