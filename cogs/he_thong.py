@@ -21,33 +21,43 @@ class HeThong(commands.Cog):
         )
 
         embed.add_field(
-            name="🧘 Tu Luyện & Đột Phá",
-            value="`!tuluyen`: Tích lũy linh khí\n`!dotpha`: Cầu linh kiếp thăng cấp\n`!me`: Xem danh thiếp tu sĩ",
+            name="🧘 TU LUYỆN & THÔNG TIN",
+            value="`!tuluyen`: Tích lũy linh khí\n`!dotpha`: Đột phá cảnh giới\n`!doituvi`: Đổi Linh thạch lấy Tu vi\n`!me`: Xem danh thiếp tu sĩ\n`!top`: Bảng xếp hạng",
             inline=False,
         )
         embed.add_field(
-            name="⚔️ Chiến Đấu & Thử Thách",
-            value="`!sanboss`: Săn yêu thú kiếm đồ\n`!bicanh`: Khám phá di tích cổ\n`!chemboss`: Chung tay trảm World Boss",
+            name="⚔️ CHIẾN ĐẤU & THỬ THÁCH",
+            value="`!sanboss`: Săn yêu thú\n`!bicanh`: Khám phá bí cảnh\n`!chemboss`: Trảm World Boss\n`!thachdau @`: PK Tỉ thí\n`!dosat @`: Đồ sát cướp bóc",
             inline=False,
         )
         embed.add_field(
-            name="🧪 Vật Phẩm & Linh Đan",
-            value="`!tuido`: Xem hành trang\n`!use <id>`: Sử dụng vật phẩm\n`!thao <id>`: Tháo trang bị\n`!danphuong`: Xem công thức luyện đan\n`!luyendan <id>`: Luyện chế linh đan",
+            name="📚 CÔNG PHÁP & KỸ NĂNG",
+            value="`!hoc <id>`: Lĩnh ngộ bí kíp\n`!congphap`: Quản lý & Trang bị kỹ năng\n`!danphuong`: Xem công thức luyện đan\n`!luyendan <id>`: Luyện chế linh đan",
             inline=False,
         )
         embed.add_field(
-            name="💰 Giao Thương & Đấu Giá",
-            value="`?shop`: Shop Thương Nhân\n`!daugialist`: Đấu giá sàn\n`!daugia`: Treo đấu giá\n`!bid`: Đặt thầu/Mua đứt\n`!chuyentien`: Chuyển tiền (Thuế 10%)\n`!giaodich`: Bán đồ trực tiếp",
+            name="🎒 VẬT PHẨM & TRANG BỊ",
+            value="`!tuido`: Xem hành trang\n`!use <id>`: Sử dụng/Trang bị\n`!thao <id>`: Gỡ trang bị",
             inline=False,
         )
         embed.add_field(
-            name="🤝 Xã Hội & Bang Phái",
-            value="`!songtu @`: Kết đôi\n`!lapphai`: Lập tông môn\n`!moiphai`: Mời đệ tử\n`!xemphai`: Thông tin tông môn",
+            name="💰 GIAO THƯƠNG & CHỢ ĐEN",
+            value="`!choden`: Xem chợ đen toàn giới\n`!ban <id> <giá>`: Treo đồ lên chợ\n`!chuyentien @ <lt>`: Chuyển Linh thạch\n`!giaodich @ <id> <giá>`: Bán đồ trực tiếp",
             inline=False,
         )
         embed.add_field(
-            name="🏆 Vinh Danh",
-            value="`!nhiemvu`: Xem nhiệm vụ ngày\n`!top`: Bảng vàng thiên đạo",
+            name="⚖️ ĐẤU GIÁ BẢO VẬT",
+            value="`!daugialist`: Xem danh sách đấu giá\n`!daugia <id> <giá>`: Đưa đồ lên sàn\n`!bid <id> <giá>`: Đặt thầu/Mua đứt",
+            inline=False,
+        )
+        embed.add_field(
+            name="🤝 XÃ HỘI & TÔNG MÔN",
+            value="`!songtu @`: Kết đôi Đạo lữ\n`!lithu`: Ly hôn\n`!lapphai`: Lập tông môn\n`!moiphai @`: Mời đệ tử\n`!roiphai`: Rời tông\n`!xemphai`: Xem tông môn",
+            inline=False,
+        )
+        embed.add_field(
+            name="🏪 THƯƠNG NHÂN & KHÁC",
+            value="`?shop`: Shop hệ thống (Bot Thương Nhân)\n`?buy <id>`: Mua đồ shop\n`!nhiemvu`: Nhiệm vụ ngày\n`!trogiup`: Hiện bảng này",
             inline=False,
         )
 
