@@ -37,6 +37,8 @@ class ThongTin(commands.Cog):
                 return
 
             tv, cs, lt, ten_cg, tv_max, dao_hieu = row
+            if tv_max is None or tv_max == 0:
+                tv_max = 999_999_999  # Đỉnh phong
 
             # Lấy LC từ trang bị
             cursor = await db.execute(
@@ -127,7 +129,7 @@ class ThongTin(commands.Cog):
             embed.add_field(name="🏯 Tông Môn", value=tong_mon_text, inline=True)
 
             embed.set_footer(
-                text="Hệ Thống Bot Tu Tiên V4 | Gõ !tuido để xem hành trang"
+                text="Hệ Thống Bot Tu Tiên V4 GOLD FULL | Gõ !tuido để xem hành trang"
             )
             await ctx.send(embed=embed)
 

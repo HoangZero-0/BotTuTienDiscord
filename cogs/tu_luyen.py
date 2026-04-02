@@ -74,7 +74,7 @@ class TuLuyen(commands.Cog):
                 """
                 SELECT p.tu_vi, p.the_luc, r.ten_canh_gioi, 
                 (SELECT tu_vi_can_thiet FROM realms_master WHERE canh_gioi_id = p.canh_gioi_id + 1) as tv_max, 
-                p.dao_lu_id, p.canh_gioi_id 
+                p.dao_lu_id, p.canh_gioi_id, p.luc_chien_goc, p.dao_hieu
                 FROM players p JOIN realms_master r ON p.canh_gioi_id = r.canh_gioi_id 
                 WHERE p.user_id = ?""",
                 (user_id,),
@@ -84,7 +84,19 @@ class TuLuyen(commands.Cog):
             if not row:
                 return
 
-            cg_id, current_tv, current_cs, ten_cg, tv_max, dao_hieu = row
+            (
+                current_tv,
+                current_tl,
+                ten_cg,
+                tv_max,
+                dao_partner_id,
+                cg_id,
+                current_cs,
+                dao_hieu,
+            ) = row
+            if tv_max is None or tv_max == 0:
+                tv_max = 999_999_999  # Đỉnh phong
+
             dh_prefix = f"**{dao_hieu}** - " if dao_hieu else ""
 
             # Kiểm tra Thể lực (Cần ít nhất 2 để tu luyện)
