@@ -210,40 +210,41 @@ async def update_player_stats(db_path, user_id):
         # --- HỒI PHỤC THEO GIÂY (V4 GOLD) ---
         new_tl = the_luc
         new_sl = sinh_luc
-        new_last_tl = last_tl_time
-        new_last_sl = last_sl_time
+        update_db = False
 
         # 1. Hồi Thể Lực (1 điểm / 1 giây)
         if last_tl_time > 0:
             tl_diff = now - last_tl_time
-            if tl_diff > 0 and the_luc < max_tl:
-                gain_tl = tl_diff  # 1s = 1pt
+            if tl_diff >= 1 and the_luc < max_tl:
+                gain_tl = int(tl_diff)
                 new_tl = min(max_tl, the_luc + gain_tl)
-                new_last_tl = now
+                last_tl_time = now
+                update_db = True
         else:
-            new_last_tl = now
+            last_tl_time = now
+            update_db = True
 
         # 2. Hồi Sinh Lực (1% / 1 giây)
         if last_sl_time > 0:
             sl_diff = now - last_sl_time
-            if sl_diff > 0 and sinh_luc < max_sl:
+            if sl_diff >= 1 and sinh_luc < max_sl:
                 gain_sl = int(max_sl * 0.01 * sl_diff)
+                # Đảm bảo ít nhất hồi 1 máu nếu đã qua 1s
+                gain_sl = max(1, gain_sl) if sl_diff >= 1 else 0
                 new_sl = min(max_sl, sinh_luc + gain_sl)
-                new_last_sl = now
+                last_sl_time = now
+                update_db = True
         else:
-            new_last_sl = now
+            last_sl_time = now
+            update_db = True
 
-        if new_tl != the_luc or new_sl != sinh_luc:
-            await db.execute(
-                "UPDATE players SET the_luc = ?, sinh_luc = ?, last_the_luc_restore = ?, last_sinh_luc_restore = ?, is_active = 1 WHERE user_id = ?",
-                (new_tl, new_sl, new_last_tl, new_last_sl, user_id),
-            )
-            await db.commit()
-        else:
-            # Vẫn update is_active cho người dùng vừa gõ lệnh
-            await db.execute(
-                "UPDATE players SET is_active = 1 WHERE user_id = ?", (user_id,)
-            )
-            await db.commit()
+        # Luôn commit nếu có thay đổi hoặc gõ lệnh (để update is_active)
+        await db.execute(
+            "UPDATE players SET the_luc = ?, sinh_luc = ?, last_the_luc_restore = ?, last_sinh_luc_restore = ?, is_active = 1 WHERE user_id = ?",
+            (new_tl, new_sl, last_tl_time, last_sl_time, user_id),
+        )
+        await db.commit()
+
+        return new_tl, new_sl, max_tl, max_sl
 
         return new_tl, new_sl, max_tl, max_sl

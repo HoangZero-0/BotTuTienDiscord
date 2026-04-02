@@ -15,6 +15,13 @@ class VatPham(commands.Cog):
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def use(self, ctx, item_id: CleanID):
         user_id = str(ctx.author.id)
+
+        # 1. Cập nhật và lấy chỉ số (HP/TL)
+        res = await update_player_stats(self.db_path, user_id)
+        if not res:
+            return await ctx.send("❌ Đạo hữu chưa tu luyện!")
+        tl, sl, max_tl, max_sl = res
+
         async with get_db(self.db_path) as db:
             cursor = await db.execute(
                 """
@@ -30,6 +37,10 @@ class VatPham(commands.Cog):
 
             qty, name, category, buff, trang_thai = item
 
+            import time
+
+            now = int(time.time())
+
             # ======= ĐAN DƯỢC =======
             if category == "dan_duoc":
                 status_msg = await ctx.send(
@@ -39,39 +50,17 @@ class VatPham(commands.Cog):
 
                 embed = discord.Embed(color=discord.Color.green())
 
-                if item_id == 101:
-                    # Huyết Khí Đan: Hồi Thể Lực
-                    await db.execute(
-                        "UPDATE players SET the_luc = min(100, the_luc + ?) WHERE user_id = ?",
-                        (buff, user_id),
-                    )
-                    embed.description = f"🍵 {ctx.author.mention} dùng **{name}**, hồi phục **+{buff} Thể Lực**!"
-                    await self._consume_item(db, user_id, item_id, qty)
+                # Fetch more details if needed
+                c_desc = await db.execute(
+                    "SELECT mo_ta FROM item_master WHERE item_id = ?", (item_id,)
+                )
+                desc_row = await c_desc.fetchone()
+                mo_ta = desc_row[0].lower() if desc_row else ""
+                name_low = name.lower()
 
-                elif item_id in [102, 104, 106, 108]:
-                    # Nhóm tăng Tu Vi: Chặn trần tv_max
-                    c = await db.execute(
-                        "SELECT p.tu_vi, r.tu_vi_can_thiet FROM players p JOIN realms_master r ON p.canh_gioi_id = r.canh_gioi_id WHERE p.user_id = ?",
-                        (user_id,),
-                    )
-                    tv_row = await c.fetchone()
-                    current_tv, tv_max = tv_row
-                    actual_gain = min(buff, tv_max - current_tv)
-                    actual_gain = max(0, actual_gain)
-
-                    await db.execute(
-                        "UPDATE players SET tu_vi = min(?, tu_vi + ?) WHERE user_id = ?",
-                        (tv_max, buff, user_id),
-                    )
-                    embed.description = f"💊 {ctx.author.mention} cắn **{name}**, tăng **+{actual_gain} Tu Vi**!"
-                    if current_tv + buff >= tv_max:
-                        embed.description += (
-                            "\n🌟 **BÌNH CẢNH!** Linh khí đã đầy, hãy gõ `!dotpha`!"
-                        )
-                    await self._consume_item(db, user_id, item_id, qty)
-
-                elif item_id in [103, 105, 107, 109]:
-                    # V3: Đan hỗ trợ Đột Phá — Thực sự kích hoạt Đột Phá!
+                # Tự động nhận diện loại đan dựa trên Tên/Mô tả/ID
+                # 1. Nhóm Đột Phá (103, 105, 107, 109)
+                if item_id in [103, 105, 107, 109]:
                     c = await db.execute(
                         "SELECT p.tu_vi, p.canh_gioi_id, r.tu_vi_can_thiet FROM players p JOIN realms_master r ON p.canh_gioi_id = r.canh_gioi_id WHERE p.user_id = ?",
                         (user_id,),
@@ -80,46 +69,87 @@ class VatPham(commands.Cog):
                     current_tv, cg_id, tv_max = tv_row
 
                     if current_tv >= tv_max:
-                        # Đủ Tu Vi → Cưỡng chế Đột Phá!
+                        new_cg = cg_id + 1
+                        new_max_sl = new_cg * 100
                         await db.execute(
-                            "UPDATE players SET canh_gioi_id = canh_gioi_id + 1, tu_vi = 0, luc_chien_goc = CAST(luc_chien_goc * 1.1 AS INTEGER) WHERE user_id = ?",
-                            (user_id,),
+                            "UPDATE players SET canh_gioi_id = ?, tu_vi = 0, luc_chien_goc = CAST(luc_chien_goc * 1.1 AS INTEGER), the_luc = 120, sinh_luc = ?, last_the_luc_restore = ?, last_sinh_luc_restore = ? WHERE user_id = ?",
+                            (new_cg, new_max_sl, now, now, user_id),
                         )
                         await self._consume_item(db, user_id, item_id, qty)
 
-                        # Lấy tên cảnh giới mới
                         c2 = await db.execute(
                             "SELECT ten_canh_gioi FROM realms_master WHERE canh_gioi_id = ?",
-                            (cg_id + 1,),
+                            (new_cg,),
                         )
                         new_realm = await c2.fetchone()
                         new_name = new_realm[0] if new_realm else "???"
-
                         embed.color = discord.Color.gold()
-                        embed.description = (
-                            f"🌟 **ĐỘT PHÁ THẦN TỐC!** {ctx.author.mention} dùng **{name}** cưỡng chế đột phá!\n"
-                            f"🎊 Thăng cấp lên **{new_name}**! Lực chiến gốc +10%!"
-                        )
+                        embed.description = f"🌟 **ĐỘT PHÁ THẦN TỐC!** {ctx.author.mention} dùng **{name}** cưỡng chế đột phá thành công lên **{new_name}**!\n💖 Hồi đầy 100% Trạng thái!"
                     else:
-                        # Chưa đủ Tu Vi → Chỉ hiển thị thông tin
                         embed.color = discord.Color.orange()
-                        embed.description = (
-                            f"ℹ️ **{name}** cần Tu Vi đạt Bình Cảnh ({current_tv}/{tv_max}) mới có thể kích hoạt.\n"
-                            f"💡 Hãy tu luyện cho đầy rồi dùng đan này để cưỡng chế đột phá!"
-                        )
+                        embed.description = f"ℹ️ **{name}** cần Tu Vi đạt Bình Cảnh ({current_tv}/{tv_max}) mới có thể kích hoạt."
 
-                elif item_id == 110:
-                    # Cửu Chuyển Hoàn Hồn Đan: Chỉ thông báo, KHÔNG trừ số lượng
-                    embed.color = discord.Color.purple()
-                    embed.description = (
-                        f"🛡️ **{name}** sẽ tự động bảo vệ ngài nếu `!dotpha` thất bại.\n"
-                        f"Đừng lo lắng, viên đan này nằm yên trong túi chờ thời cơ!"
+                # 2. Nhóm tăng Tu Vi (Keywords: tu vi, linh khí)
+                elif (
+                    "tu vi" in mo_ta
+                    or "linh khí" in mo_ta
+                    or "tu vi" in name_low
+                    or item_id in [102, 104, 106, 108]
+                ):
+                    c = await db.execute(
+                        "SELECT p.tu_vi, r.tu_vi_can_thiet FROM players p JOIN realms_master r ON p.canh_gioi_id = r.canh_gioi_id WHERE p.user_id = ?",
+                        (user_id,),
                     )
-                else:
-                    embed.description = (
-                        f"❓ Đan dược **{name}** chưa có bí tịch ghi chép."
+                    tv_row = await c.fetchone()
+                    current_tv, tv_max = tv_row
+                    actual_gain = min(buff, tv_max - current_tv)
+
+                    await db.execute(
+                        "UPDATE players SET tu_vi = min(?, tu_vi + ?) WHERE user_id = ?",
+                        (tv_max, buff, user_id),
                     )
+                    embed.description = f"💊 {ctx.author.mention} cắn **{name}**, tăng **+{actual_gain:,} Tu Vi**!"
                     await self._consume_item(db, user_id, item_id, qty)
+
+                # 3. Nhóm hồi Thể Lực (Keywords: thể lực, stamina)
+                elif "thể lực" in mo_ta or "stamina" in mo_ta or "thể lực" in name_low:
+                    await db.execute(
+                        "UPDATE players SET the_luc = min(120, the_luc + ?), last_the_luc_restore = ? WHERE user_id = ?",
+                        (buff, now, user_id),
+                    )
+                    embed.description = f"🍵 {ctx.author.mention} dùng **{name}**, hồi phục **+{buff:,} Thể Lực**!"
+                    await self._consume_item(db, user_id, item_id, qty)
+
+                # 4. Nhóm hồi Sinh Lực / Máu (Keywords: sinh lực, máu, hp)
+                elif (
+                    "sinh lực" in mo_ta
+                    or "máu" in mo_ta
+                    or "hp" in mo_ta
+                    or "sinh lực" in name_low
+                    or "máu" in name_low
+                ):
+                    # Lấy max_sl
+                    c_sl = await db.execute(
+                        "SELECT canh_gioi_id * 100 FROM players WHERE user_id = ?",
+                        (user_id,),
+                    )
+                    row_sl = await c_sl.fetchone()
+                    max_sl_p = row_sl[0] if row_sl else 100
+
+                    await db.execute(
+                        "UPDATE players SET sinh_luc = min(?, sinh_luc + ?), last_sinh_luc_restore = ? WHERE user_id = ?",
+                        (max_sl_p, buff, now, user_id),
+                    )
+                    embed.description = f"🩸 {ctx.author.mention} dùng **{name}**, hồi phục **+{buff:,} Sinh Lực**!"
+                    await self._consume_item(db, user_id, item_id, qty)
+
+                # 5. Hoàn Hồn Đan / Khác
+                else:
+                    if item_id == 110:
+                        embed.description = f"🛡️ **{name}** sẽ tự động bảo hộ đạo hữu khi Đột phá thất bại. Không cần dùng trực tiếp!"
+                        embed.color = discord.Color.purple()
+                    else:
+                        embed.description = f"❓ Vật phẩm **{name}** chưa rõ công năng, đạo hữu hãy cất kỹ."
 
                 await db.commit()
                 await status_msg.edit(content=None, embed=embed)

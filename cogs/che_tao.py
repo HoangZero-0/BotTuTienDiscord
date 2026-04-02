@@ -47,6 +47,14 @@ class CheTao(commands.Cog):
         user_id = str(ctx.author.id)
         recipe = self.RECIPES[item_id]
 
+        # 1. Cập nhật và lấy chỉ số (HP/TL)
+        from utils import update_player_stats
+
+        res = await update_player_stats(self.db_path, user_id)
+        if not res:
+            return await ctx.send("❌ Đạo hữu chưa tu luyện!")
+        tl, sl, max_tl, max_sl = res
+
         async with get_db(self.db_path) as db:
             # Kiểm tra người chơi
             p = await db.execute(
@@ -65,6 +73,9 @@ class CheTao(commands.Cog):
                 return await ctx.send(
                     f"❌ Không đủ **{recipe['money']:,}** Linh Thạch để luyện đan! (Hiện có: {player_lt:,})"
                 )
+
+            if tl < 5:
+                return await ctx.send("⚠️ Không đủ **5 Thể Lực** để nhóm lửa luyện đan!")
 
             # Kiểm tra nguyên liệu (hiển thị tên)
             for req_id, req_qty in recipe["req"].items():
@@ -101,9 +112,9 @@ class CheTao(commands.Cog):
             )
             await asyncio.sleep(2.0)
 
-            # Trừ tiền & nguyên liệu (LUÔN trừ dù thành công hay thất bại)
+            # Trừ tiền & Thể lực & Nguyên liệu (LUÔN trừ dù thành công hay thất bại)
             await db.execute(
-                "UPDATE players SET linh_thach = linh_thach - ? WHERE user_id = ?",
+                "UPDATE players SET linh_thach = linh_thach - ?, the_luc = max(0, the_luc - 5) WHERE user_id = ?",
                 (recipe["money"], user_id),
             )
             for req_id, req_qty in recipe["req"].items():

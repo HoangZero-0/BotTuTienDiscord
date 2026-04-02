@@ -47,17 +47,24 @@ class BiCanh(commands.Cog):
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def bicanh(self, ctx):
         user_id = str(ctx.author.id)
+
+        # 1. Cập nhật và lấy chỉ số (HP/TL)
+        res = await update_player_stats(self.db_path, user_id)
+        if not res:
+            return await ctx.send("❌ Đạo hữu chưa tu luyện!")
+        tl, sl, max_tl, max_sl = res
+
         async with get_db(self.db_path) as db:
             c = await db.execute(
-                "SELECT canh_gioi_id, tu_vi, luc_chien_goc, the_luc, linh_thach FROM players WHERE user_id = ?",
+                "SELECT canh_gioi_id, tu_vi, luc_chien_goc, linh_thach FROM players WHERE user_id = ?",
                 (user_id,),
             )
             row = await c.fetchone()
             if not row:
                 return
-            cg_id, tu_vi, luc_chien, the_luc, linh_thach = row
+            cg_id, tu_vi, luc_chien, linh_thach = row
 
-            if the_luc < 10:
+            if tl < 10:
                 return await ctx.send("⚠️ Không đủ **10 Thể Lực** để thám hiểm!")
             lt_cost = max(10, int(linh_thach * 0.02 * (1 + cg_id * 0.1)))
             if linh_thach < lt_cost:
