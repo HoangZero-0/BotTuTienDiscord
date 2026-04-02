@@ -1,4 +1,7 @@
 import asyncio
+
+# --- Hệ thống Bot Tu Tiên V3 Gold - Khởi động ---
+import discord
 import os
 from main_thiendao import ThienDaoBot
 from main_thuongnhan import ThuongNhanBot, setup_commands
