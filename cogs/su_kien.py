@@ -4,7 +4,7 @@ import aiosqlite
 import random
 import asyncio
 from datetime import datetime
-from utils import get_db
+from utils import get_db, update_player_stats
 
 
 class SuKien(commands.Cog):
@@ -86,7 +86,6 @@ class SuKien(commands.Cog):
         user_id = str(ctx.author.id)
 
         # 1. Cập nhật và lấy chỉ số (HP/TL)
-        from utils import update_player_stats
 
         res = await update_player_stats(self.db_path, user_id)
         if not res:

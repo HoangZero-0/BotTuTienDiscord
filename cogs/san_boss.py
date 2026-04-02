@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from utils import get_db
+from utils import get_db, update_player_stats
 import asyncio
 import random
 import json

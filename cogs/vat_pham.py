@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import asyncio
-from utils import CleanID, get_db
+from utils import CleanID, get_db, update_player_stats
 
 
 class VatPham(commands.Cog):
