@@ -115,11 +115,18 @@ class SanBoss(commands.Cog):
     async def sanboss(self, ctx):
         user_id = str(ctx.author.id)
         win = False
+
+        # 1. Cập nhật và lấy chỉ số (HP/TL)
+        res = await update_player_stats(self.db_path, user_id)
+        if not res:
+            return await ctx.send("❌ Đạo hữu chưa tu luyện!")
+        tl, sl, max_tl, max_sl = res
+
         async with get_db(self.db_path) as db:
             # Lấy thông tin người chơi
             p = await db.execute(
                 """
-                SELECT p.canh_gioi_id, p.luc_chien_goc, COALESCE(SUM(im.chi_so_buff), 0), p.the_luc
+                SELECT p.canh_gioi_id, p.luc_chien_goc + COALESCE(SUM(im.chi_so_buff), 0) as cp
                 FROM players p
                 LEFT JOIN inventory i ON p.user_id = i.user_id AND i.trang_thai = 'dang_trang_bi'
                 LEFT JOIN item_master im ON i.item_id = im.item_id
@@ -127,14 +134,13 @@ class SanBoss(commands.Cog):
                 """,
                 (user_id,),
             )
-            player = await p.fetchone()
-            if not player:
+            player_row = await p.fetchone()
+            if not player_row:
                 return
 
-            cg_id, base_cp, buff_cp, the_luc = player
-            cp = base_cp + (buff_cp or 0)
+            cg_id, cp = player_row
 
-            if the_luc < 3:
+            if tl < 3:
                 return await ctx.send(
                     "⚠️ Thể lực quá yếu, ngài cần ít nhất **3 Thể Lực** để mạo hiểm!"
                 )

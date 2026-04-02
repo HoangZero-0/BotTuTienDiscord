@@ -101,9 +101,7 @@ class TuLuyen(commands.Cog):
 
             # Kiểm tra Thể lực (Cần ít nhất 2 để tu luyện)
             if tl < 2:
-                # Nếu TL < 5, kiểm tra xem có dùng cơ chế cũ (TL < 2) không?
-                # Ta thống nhất dùng chuẩn mới: Cần 5 TL.
-                await ctx.send("⚠️ Thể lực không đủ (cần 5). Hãy đợi hồi phục!")
+                await ctx.send("⚠️ Thể lực không đủ (cần 2). Hãy đợi hồi phục!")
                 return
 
             # Kiểm tra trạng thái sống còn

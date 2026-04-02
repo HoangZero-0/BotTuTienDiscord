@@ -64,7 +64,7 @@ class DoSat(commands.Cog):
                 return await ctx.send("💀 Kẻ đó đã trọng thương gục ngã rồi!")
 
             async with get_db(self.db_path) as db:
-                # 3. Lấy thông tin chi tiết
+                # 3. Lấy thông tin chi tiết & Kỹ năng (V4 GOLD)
                 ca = await db.execute(
                     """
                     SELECT p.tu_vi, p.linh_thach, p.tong_mon_id,
@@ -97,6 +97,17 @@ class DoSat(commands.Cog):
                 a_tv, a_lt, a_tm_id, a_cp = ra
                 t_tv, t_lt, t_tm_id, t_cp = rt
 
+                # Lấy kỹ năng trang bị
+                async def get_skills(uid):
+                    c = await db.execute(
+                        "SELECT sm.name, sm.base_multiplier FROM player_equipped_skills eq JOIN skills_master sm ON eq.skill_id = sm.skill_id WHERE eq.user_id = ?",
+                        (uid,),
+                    )
+                    return await c.fetchall()
+
+                a_skills = await get_skills(attacker_id)
+                t_skills = await get_skills(target_id)
+
                 if a_tm_id and t_tm_id and a_tm_id == t_tm_id:
                     return await ctx.send(
                         "❌ Pháp tắc: **Không thể tàn sát đồng môn!**"
@@ -108,21 +119,36 @@ class DoSat(commands.Cog):
                 )
                 await db.commit()
 
-            # ===== 4. CHIẾN ĐẤU (TURN-BASED) =====
+            # ===== 4. CHIẾN ĐẤU (TURN-BASED WITH SKILLS) =====
             cur_a_sl, cur_t_sl = a_sl, t_sl
             round_logs = []
             winner, escaped = None, None
             ratio = a_cp / max(1, t_cp)
 
             for rnd in range(1, MAX_ROUNDS + 1):
-                # Sát thương dựa trên CP (Lực chiến)
-                dmg_at = int((a_cp * 0.10) * random.uniform(0.8, 1.2))
+                # Kẻ tấn công ra chiêu
+                a_skill_name = "Đòn đánh thường"
+                a_skill_mult = 1.0
+                if a_skills and random.random() < 0.7:  # 70% dùng kỹ năng
+                    s = random.choice(a_skills)
+                    a_skill_name, a_skill_mult = s
+
+                dmg_at = int((a_cp * 0.10) * a_skill_mult * random.uniform(0.8, 1.2))
                 dmg_at = max(1, dmg_at)
                 cur_t_sl -= dmg_at
 
                 dmg_ta = 0
+                t_skill_name = "Phản kích"
                 if cur_t_sl > 0:
-                    dmg_ta = int((t_cp * 0.10) * random.uniform(0.8, 1.2))
+                    # Nạn nhân phản công
+                    t_skill_mult = 1.0
+                    if t_skills and random.random() < 0.6:  # 60% phản công bằng kỹ năng
+                        s = random.choice(t_skills)
+                        t_skill_name, t_skill_mult = s
+
+                    dmg_ta = int(
+                        (t_cp * 0.10) * t_skill_mult * random.uniform(0.8, 1.2)
+                    )
                     dmg_ta = max(1, dmg_ta)
                     cur_a_sl -= dmg_ta
 
@@ -130,8 +156,9 @@ class DoSat(commands.Cog):
                 bar_t = get_hp_bar(max(0, cur_t_sl), t_max_sl)
 
                 round_logs.append(
-                    f"**Lượt {rnd}:**\n"
-                    f"🗡️ `{ctx.author.name}`: **-{dmg_at:,}** | 🛡️ `{target.name}`: **-{dmg_ta:,}**\n"
+                    f"**Hiệp {rnd}:**\n"
+                    f"⚔️ **{a_skill_name}**: -{dmg_at:,}\n"
+                    f"🛡️ **{t_skill_name}**: -{dmg_ta:,}\n"
                     f"🔴 {bar_a} `{max(0,cur_a_sl):,}/{a_max_sl:,}`\n"
                     f"🔵 {bar_t} `{max(0,cur_t_sl):,}/{t_max_sl:,}`"
                 )

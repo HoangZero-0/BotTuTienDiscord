@@ -55,14 +55,11 @@ class SuKien(commands.Cog):
         ]
         self.world_boss["name"] = random.choice(boss_names)
         # World Boss HP: Scale theo 66 cảnh giới. Level 66 chuẩn ~40 tỷ.
-        # Ta để HP dao động từ 10M (lv1) đến 100 tỷ (lv66)
         boss_tier = random.randint(10, 66)
         boss_hp_base = int(5000 * (1.35**boss_tier))
         self.world_boss["max_hp"] = boss_hp_base
         self.world_boss["hp"] = self.world_boss["max_hp"]
-        self.world_boss["reward"] = (
-            int(boss_hp_base / 100000) + 50000
-        )  # Quỹ thưởng phù hợp
+        self.world_boss["reward"] = int(boss_hp_base / 100000) + 50000
         self.world_boss["damage_log"] = {}
 
         embed = discord.Embed(
@@ -75,13 +72,6 @@ class SuKien(commands.Cog):
             f"🎁 Thưởng kết liễu: **10,000 LT**\n"
             f"👉 Gõ `!chemboss` để trấn áp!"
         )
-        embed.set_image(
-            url=(
-                "https://media.discordapp.net/attachments/111/world_boss_spawn.gif"
-                if False
-                else None
-            )
-        )  # Placeholder
         await self.broadcast_event(embed)
 
     @commands.command()
@@ -95,6 +85,17 @@ class SuKien(commands.Cog):
 
         user_id = str(ctx.author.id)
 
+        # 1. Cập nhật và lấy chỉ số (HP/TL)
+        from utils import update_player_stats
+
+        res = await update_player_stats(self.db_path, user_id)
+        if not res:
+            return await ctx.send("❌ Đạo hữu chưa tu luyện!")
+        tl, sl, max_tl, max_sl = res
+
+        if tl < 2:
+            return await ctx.send("⚠️ Không đủ **2 Thể Lực** để vung kiếm trảm boss!")
+
         async with get_db(self.db_path) as db:
             # Lấy lực chiến tổng
             c = await db.execute(
@@ -104,12 +105,32 @@ class SuKien(commands.Cog):
                 """,
                 (user_id,),
             )
-            res = await c.fetchone()
-            if not res:
+            res_p = await c.fetchone()
+            if not res_p:
                 return await ctx.send("❌ Đạo hữu chưa tu luyện!")
 
-            damage = int(res[0] * random.uniform(0.7, 1.3))
+            # Lấy kỹ năng mạnh nhất đang trang bị (V4 GOLD)
+            c_skill = await db.execute(
+                """
+                SELECT sm.name, sm.base_multiplier 
+                FROM player_equipped_skills eq JOIN skills_master sm ON eq.skill_id = sm.skill_id 
+                WHERE eq.user_id = ? ORDER BY sm.base_multiplier DESC LIMIT 1
+                """,
+                (user_id,),
+            )
+            skill_row = await c_skill.fetchone()
+            skill_name, skill_mult = (
+                skill_row if skill_row else ("Chiêu thức cơ bản", 1.0)
+            )
+
+            damage = int(res_p[0] * skill_mult * random.uniform(0.7, 1.3))
             damage = max(1, damage)
+
+            # Trừ thể lực ngay lập tức
+            await db.execute(
+                "UPDATE players SET the_luc = max(0, the_luc - 2) WHERE user_id = ?",
+                (user_id,),
+            )
 
             # Giảm máu boss
             actual_dame = min(self.world_boss["hp"], damage)
@@ -120,6 +141,19 @@ class SuKien(commands.Cog):
 
             killed = self.world_boss["hp"] <= 0
             hp_bar = self.get_hp_bar(self.world_boss["hp"], self.world_boss["max_hp"])
+
+            embed = discord.Embed(
+                title="⚔️ TRẢM BOSS THẾ GIỚI",
+                description=(
+                    f"🤺 {ctx.author.mention} vận dụng **{skill_name}**!\n"
+                    f"💥 Gây ra **{actual_dame:,}** sát thương lên **{self.world_boss['name']}**!\n"
+                    f"🩸 Máu Boss còn: **{self.world_boss['hp']:,} / {self.world_boss['max_hp']:,}**"
+                ),
+                color=discord.Color.red(),
+            )
+            if not killed:
+                embed.add_field(name="Trạng thái Boss", value=hp_bar, inline=False)
+                await ctx.send(embed=embed)
 
             if killed:
                 # --- CHIA THƯỞNG TOP DAMAGE ---
@@ -138,9 +172,6 @@ class SuKien(commands.Cog):
                     f"🗡️ **Kết liễu:** {ctx.author.mention} (+{bonus_last_hit:,} LT)\n\n"
                 )
                 result_text += "🏆 **BẢNG VÀNG SÁT THƯƠNG:**\n"
-
-                # Thưởng Top 1 (40%), Top 2 (25%), Top 3 (15%), Còn lại chia đều 20%?
-                # Thôi chia theo tỉ lệ sát thương thực tế cho công bằng nhất nhưng có bonus Top 3.
 
                 top_medals = {0: "🥇", 1: "🥈", 2: "🥉"}
                 for i, (uid, d) in enumerate(sorted_dame[:5]):
@@ -168,10 +199,6 @@ class SuKien(commands.Cog):
                 self.world_boss["name"] = None
                 await self.broadcast_event(result_text)
                 await self.bot.update_quest_progress(user_id, "worldboss", ctx)
-            else:
-                await ctx.send(
-                    f"💥 {ctx.author.mention} gây **{damage:,}** ST!\n🩸 Boss: `{hp_bar}`"
-                )
 
     # ==================== CƠ DUYÊN (30P/LẦN) ====================
     @tasks.loop(minutes=30)
@@ -282,7 +309,7 @@ class SuKien(commands.Cog):
     @tasks.loop(minutes=30)
     async def random_drop(self):
         """Rơi Linh Thạch ngẫu nhiên vào kênh - Ai nhặt nhanh thì được"""
-        if random.random() < 0.4:  # 40% tỉ lệ mỗi giờ
+        if random.random() < 0.4:  # 40% tỉ lệ mỗi nửa giờ
             amount = random.randint(500, 2000)
             for guild in self.bot.guilds:
                 ch = self.get_event_channel(guild)

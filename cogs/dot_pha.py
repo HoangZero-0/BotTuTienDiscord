@@ -106,9 +106,12 @@ class DoKiep(commands.Cog):
                     success = True
                     multiplier = 1.5 if co_loikiep else 1.1
                     new_cs = int(cs * multiplier)
+                    import time
+
+                    now = int(time.time())
                     await db.execute(
-                        "UPDATE players SET canh_gioi_id = canh_gioi_id + 1, tu_vi = 0, luc_chien_goc = ?, the_luc = 120, sinh_luc = (canh_gioi_id + 1) * 100 WHERE user_id = ?",
-                        (new_cs, user_id),
+                        "UPDATE players SET canh_gioi_id = canh_gioi_id + 1, tu_vi = 0, luc_chien_goc = ?, the_luc = 120, sinh_luc = (canh_gioi_id + 1) * 100, last_the_luc_restore = ?, last_sinh_luc_restore = ? WHERE user_id = ?",
+                        (new_cs, now, now, user_id),
                     )
 
                     msg = (
