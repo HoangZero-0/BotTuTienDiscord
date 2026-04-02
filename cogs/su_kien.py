@@ -34,7 +34,7 @@ class SuKien(commands.Cog):
         percent = max(0, min(100, (current / max_hp) * 100))
         filled = int(percent / 10)
         bar = "🟥" * filled + "⬜" * (10 - filled)
-        return f"[{bar}] {percent:.1f}%"
+        return f"[{bar}] {percent:.1f}% (**{current:,}/{max_hp:,}**)"
 
     # ==================== WORLD BOSS (2H/LẦN) ====================
     @tasks.loop(hours=2)
