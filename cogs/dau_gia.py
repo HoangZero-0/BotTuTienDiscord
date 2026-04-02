@@ -220,6 +220,16 @@ class DauGia(commands.Cog):
 
             # --- XỬ LÝ MUA ĐỨT ---
             if buyout > 0 and amount >= buyout:
+                # Xóa phiên đấu giá ngay lập tức để tránh người khác thầu cùng lúc
+                cursor = await db.execute(
+                    "DELETE FROM auctions WHERE auction_id = ? AND buyout_price = ?",
+                    (auction_id, buyout),
+                )
+                if cursor.rowcount == 0:
+                    return await ctx.send(
+                        "❌ Phiên đấu giá này đã kết thúc hoặc có biến động, hãy thử lại!"
+                    )
+
                 # Trả tiền cho bidder cũ
                 if last_bidder:
                     await db.execute(
@@ -247,36 +257,13 @@ class DauGia(commands.Cog):
                         (gain, seller),
                     )
 
-                await db.execute(
-                    "DELETE FROM auctions WHERE auction_id = ?", (auction_id,)
-                )
                 await db.commit()
                 return await ctx.send(
                     f"⚡ **MUA ĐỨT THÀNH CÔNG!** Đạo hữu đã chốt vật phẩm với giá **{buyout:,} LT**!"
                 )
 
             # --- ĐẶT THẦU BÌNH THƯỜNG ---
-            # Trả tiền bidder cũ
-            if last_bidder:
-                await db.execute(
-                    "UPDATE players SET linh_thach = linh_thach + ? WHERE user_id = ?",
-                    (curr_bid, last_bidder),
-                )
-                # Gửi thông báo cho bidder cũ (Nếu họ online và cùng server)
-                try:
-                    old_user = self.bot.get_user(int(last_bidder))
-                    if old_user:
-                        await old_user.send(
-                            f"⚠️ **ĐẤU GIÁ**: Đạo hữu đã bị vượt giá tại phiên #`{auction_id}`! (Giá mới: **{amount:,} LT**)"
-                        )
-                except:
-                    pass
-
-            await db.execute(
-                "UPDATE players SET linh_thach = linh_thach - ? WHERE user_id = ?",
-                (amount, user_id),
-            )
-
+            # Sử dụng Update Atomic để tránh race condition
             # CHỐNG SNIPING: Nếu còn < 2 phút, cộng thêm 2 phút
             new_end_time = end_time
             if (end_time - datetime.now()).total_seconds() < 120:
@@ -285,10 +272,22 @@ class DauGia(commands.Cog):
             else:
                 ext_msg = ""
 
-            await db.execute(
-                "UPDATE auctions SET current_bid = ?, highest_bidder_id = ?, end_time = ? WHERE auction_id = ?",
-                (amount, user_id, new_end_time, auction_id),
+            cursor = await db.execute(
+                "UPDATE auctions SET current_bid = ?, highest_bidder_id = ?, end_time = ? WHERE auction_id = ? AND current_bid = ?",
+                (amount, user_id, new_end_time, auction_id, curr_bid),
             )
+
+            if cursor.rowcount == 0:
+                return await ctx.send(
+                    "❌ Giá đã thay đổi bởi một đạo hữu khác! Vui lòng !bid lại với giá mới."
+                )
+
+            # Nếu update thành công mới trừ tiền và trả tiền người cũ
+            if last_bidder:
+                await db.execute(
+                    "UPDATE players SET linh_thach = linh_thach + ? WHERE user_id = ?",
+                    (curr_bid, last_bidder),
+                )
             await db.commit()
             await ctx.send(
                 f"✅ Đã đặt thầu **{amount:,} LT** cho phiên #`{auction_id}`!{ext_msg}"
