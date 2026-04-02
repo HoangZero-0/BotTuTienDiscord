@@ -1,0 +1,35 @@
+name: Deploy to Katabump
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 0 */3 * *" # Tự động chạy mỗi 3 ngày vào lúc 0h00 UTC
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🚀 Upload to Pterodactyl
+        uses: xNul/pterodactyl-upload@v1.1.0
+        with:
+          panel-url: https://control.katabump.com
+          api-key: ${{ secrets.PTERODACTYL_API_KEY }}
+          server-id: ${{ secrets.PTERODACTYL_SERVER_ID }}
+          # Loại bỏ các file không cần thiết khi upload
+          exclude: |
+            .git*
+            __pycache__
+            .env
+            tu_tien.db
+
+      - name: 🔄 Restart Server
+        uses: matthewnasby/pterodactyl-restart-action@v1.0.3
+        with:
+          panel-url: https://control.katabump.com
+          api-key: ${{ secrets.PTERODACTYL_API_KEY }}
+          server-id: ${{ secrets.PTERODACTYL_SERVER_ID }}
