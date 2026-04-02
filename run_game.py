@@ -39,7 +39,7 @@ async def main():
     bot_tn = ThuongNhanBot(ID_BOT_THIEN_DAO)
     setup_commands(bot_tn)  # Nạp các lệnh cho Thương Nhân
 
-    print("🚀 Đang khởi động hệ thống Tu Tiên song phương...")
+    print("🚀 THIÊN ĐẠO ĐÃ GIÁNG QUYẾT - HỆ THỐNG V3 AUTO-DEPLOY SUCCESS!")
 
     # 3. Chạy song song cả 2 bot
     await asyncio.gather(bot_td.start(TOKEN_THIEN_DAO), bot_tn.start(TOKEN_THUONG_NHAN))
