@@ -72,7 +72,9 @@ class TuLuyen(commands.Cog):
             # Lấy thông tin chi tiết
             cursor = await db.execute(
                 """
-                SELECT p.canh_gioi_id, p.tu_vi, p.luc_chien_goc, r.ten_canh_gioi, r.tu_vi_can_thiet, p.dao_hieu 
+                SELECT p.tu_vi, p.the_luc, r.ten_canh_gioi, 
+                (SELECT tu_vi_can_thiet FROM realms_master WHERE canh_gioi_id = p.canh_gioi_id + 1) as tv_max, 
+                p.dao_lu_id, p.canh_gioi_id 
                 FROM players p JOIN realms_master r ON p.canh_gioi_id = r.canh_gioi_id 
                 WHERE p.user_id = ?""",
                 (user_id,),

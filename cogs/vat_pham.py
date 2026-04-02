@@ -245,7 +245,7 @@ class VatPham(commands.Cog):
                 embed.add_field(name=cat_name, value="\n".join(lines), inline=False)
 
         embed.set_footer(
-            text="🟢 = Đang trang bị | Dùng !use <ID> để sử dụng | !thao <ID> để gỡ pháp bảo"
+            text="🟢 = Đang trang bị | !use <ID> để dùng/mặc | !thao <ID> để gỡ | !luyendan để nấu đồ"
         )
         await ctx.send(embed=embed)
 

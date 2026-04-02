@@ -219,6 +219,99 @@ class GiaoDich(commands.Cog):
             f"💰 **{amount:,} LT** -> {ctx.author.mention} (Đã trừ thuế {tax:,})"
         )
 
+    # ==================== !ban <item_id> <price> ====================
+    @commands.command()
+    @commands.cooldown(1, 10, commands.BucketType.user)
+    async def ban(self, ctx, item_id: CleanID, price: CleanInt):
+        """Treo vật phẩm lên Chợ Đen (Marketplace) toàn server."""
+        if price <= 0:
+            return await ctx.send("❌ Giá bán phải lớn hơn 0!")
+
+        user_id = str(ctx.author.id)
+        async with get_db(self.db_path) as db:
+            # Kiểm tra vật phẩm trong túi
+            ic = await db.execute(
+                "SELECT so_luong, trang_thai FROM inventory WHERE user_id = ? AND item_id = ?",
+                (user_id, item_id),
+            )
+            res = await ic.fetchone()
+            if not res or res[0] <= 0:
+                return await ctx.send("❌ Đạo hữu không sở hữu vật phẩm này!")
+            if res[1] == "dang_trang_bi":
+                return await ctx.send(
+                    "❌ Vật phẩm đang trang bị, hãy tháo ra trước khi bán!"
+                )
+
+            # Lấy tên vật phẩm
+            nc = await db.execute(
+                "SELECT ten_vat_pham FROM item_master WHERE item_id = ?", (item_id,)
+            )
+            nr = await nc.fetchone()
+            item_name = nr[0] if nr else f"ID: {item_id}"
+
+            # Treo lên chợ (Hết hạn sau 24h)
+            from datetime import datetime, timedelta
+
+            expiry = datetime.now() + timedelta(hours=24)
+
+            await db.execute(
+                "INSERT INTO market_listings (seller_id, item_id, so_luong, gia_ban, thoi_gian_het_han) VALUES (?, ?, 1, ?, ?)",
+                (user_id, item_id, price, expiry),
+            )
+
+            # Trừ 1 món từ túi
+            if res[0] > 1:
+                await db.execute(
+                    "UPDATE inventory SET so_luong = so_luong - 1 WHERE user_id = ? AND item_id = ?",
+                    (user_id, item_id),
+                )
+            else:
+                await db.execute(
+                    "DELETE FROM inventory WHERE user_id = ? AND item_id = ?",
+                    (user_id, item_id),
+                )
+
+            await db.commit()
+
+        await ctx.send(
+            f"📦 **{ctx.author.name}** đã treo thành công **[{item_name}]** lên Chợ Đen với giá **{price:,} LT**!"
+        )
+
+    # ==================== !choden ====================
+    @commands.command()
+    @commands.cooldown(1, 10, commands.BucketType.user)
+    async def choden(self, ctx):
+        """Xem danh sách các vật phẩm đang được treo bán."""
+        async with get_db(self.db_path) as db:
+            # Chỉ lấy các listing chưa hết hạn
+            cursor = await db.execute(
+                """
+                SELECT m.listing_id, im.ten_vat_pham, m.gia_ban, m.seller_id, m.item_id
+                FROM market_listings m JOIN item_master im ON m.item_id = im.item_id
+                WHERE m.thoi_gian_het_han > datetime('now')
+                ORDER BY m.listing_id DESC LIMIT 10
+                """
+            )
+            listings = await cursor.fetchall()
+
+        if not listings:
+            return await ctx.send(
+                "🏪 Chợ Đen hiện đang vắng lặng, không có ai treo đồ."
+            )
+
+        embed = discord.Embed(
+            title="🏪 CHỢ ĐEN TOÀN SERVER", color=discord.Color.dark_gray()
+        )
+        desc = ""
+        for l_id, name, price, seller_id, i_id in listings:
+            desc += f"`#{l_id}` **{name}** (ID:{i_id}) — 💰 **{price:,} LT** — Người bán: <@{seller_id}>\n"
+
+        embed.description = desc
+        embed.set_footer(
+            text="Dùng !giaodich @nguoi_ban <ID> <Giá> để mua trực tiếp hoặc đợi hệ thống cập nhật Buy-Back."
+        )
+        await ctx.send(embed=embed)
+
 
 async def setup(bot):
     await bot.add_cog(GiaoDich(bot))

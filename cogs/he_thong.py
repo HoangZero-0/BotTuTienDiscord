@@ -8,22 +8,14 @@ class HeThong(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.db_path = "tu_tien.db"
-        self.recover_stamina.start()  # Khởi động vòng lặp hồi thể lực
 
     def cog_unload(self):
-        self.recover_stamina.cancel()
-
-    @tasks.loop(minutes=5)
-    async def recover_stamina(self):
-        async with get_db(self.db_path) as db:
-            # Hồi 2 thể lực cho tất cả người chơi mỗi 5 phút (max 100)
-            await db.execute("UPDATE players SET the_luc = min(100, the_luc + 2)")
-            await db.commit()
+        pass
 
     @commands.command(name="trogiup", aliases=["help"])
     async def help_command(self, ctx):
         embed = discord.Embed(
-            title="📜 THIÊN ĐẠO QUY TẮC - BOT TU TIÊN V3",
+            title="📜 THIÊN ĐẠO QUY TẮC - BOT TU TIÊN V4 GOLD FULL",
             description="Chào mừng đạo hữu đã bước chân vào con đường tu đạo đầy gian nan nhưng vinh quang.",
             color=discord.Color.gold(),
         )

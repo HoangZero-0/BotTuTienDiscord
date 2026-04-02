@@ -25,7 +25,9 @@ class ThongTin(commands.Cog):
         async with get_db(self.db_path) as db:
             cursor = await db.execute(
                 """
-                SELECT p.tu_vi, p.luc_chien_goc, p.linh_thach, r.ten_canh_gioi, r.tu_vi_can_thiet, p.dao_hieu 
+                SELECT p.tu_vi, p.luc_chien_goc, p.linh_thach, r.ten_canh_gioi, 
+                (SELECT tu_vi_can_thiet FROM realms_master WHERE canh_gioi_id = p.canh_gioi_id + 1) as tv_max, 
+                p.dao_hieu 
                 FROM players p JOIN realms_master r ON p.canh_gioi_id = r.canh_gioi_id 
                 WHERE p.user_id = ?""",
                 (user_id,),

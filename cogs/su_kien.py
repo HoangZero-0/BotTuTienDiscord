@@ -82,7 +82,7 @@ class SuKien(commands.Cog):
                 else None
             )
         )  # Placeholder
-        await self.broadcast_event(embed=embed)
+        await self.broadcast_event(embed)
 
     @commands.command()
     @commands.cooldown(1, 3, commands.BucketType.user)
@@ -179,7 +179,10 @@ class SuKien(commands.Cog):
         """Ban Cơ Duyên ngẫu nhiên"""
         print("🌈 [Sự Kiện] Đang tìm kiếm đạo hữu hữu duyên...")
         async with get_db(self.db_path) as db:
-            c = await db.execute("SELECT user_id, canh_gioi_id, tu_vi FROM players")
+            # Chỉ lấy người chơi thật và đang hoạt động (is_active = 1)
+            c = await db.execute(
+                "SELECT user_id, canh_gioi_id, tu_vi FROM players WHERE is_active = 1"
+            )
             users = await c.fetchall()
             if not users:
                 return

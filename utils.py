@@ -57,6 +57,12 @@ async def update_quest_progress(db_path, user_id, goal_type, ctx=None):
                     (str(user_id), q_id, new_progress, today, new_progress, today),
                 )
 
+                # Mark as active
+                await db.execute(
+                    "UPDATE players SET is_active = 1 WHERE user_id = ?",
+                    (str(user_id),),
+                )
+
                 # CỘNG THƯỞNG KHI HOÀN THÀNH
                 if new_progress == q_goal:
                     # Lấy cảnh giới và tv_max (tu_vi_can_thiet của cảnh giới tiếp theo)
@@ -138,22 +144,43 @@ class CleanInt(commands.Converter):
 
 
 async def setup_db_columns(db_path):
+    """Đảm bảo các cột và bảng V4 GOLD tồn tại trong CSDL hiện tại."""
     async with get_db(db_path) as db:
-        new_cols = {
-            "dao_hieu": "TEXT DEFAULT NULL",
-            "sinh_luc": "INTEGER DEFAULT 100",
-            "the_luc": "INTEGER DEFAULT 120",
-            "last_the_luc_restore": "REAL DEFAULT 0",
-            "last_sinh_luc_restore": "REAL DEFAULT 0",
-            "current_boss_id": "INTEGER DEFAULT 0",
-            "current_boss_hp": "INTEGER DEFAULT 0",
-            "is_active": "INTEGER DEFAULT 0",
-        }
-        for col, col_def in new_cols.items():
+        # Danh sách các cột cần có trong bảng players
+        required_columns = [
+            ("is_active", "INTEGER DEFAULT 0"),
+            ("sinh_luc", "INTEGER DEFAULT 100"),
+            ("the_luc", "INTEGER DEFAULT 120"),
+            ("last_the_luc_restore", "INTEGER DEFAULT 0"),
+            ("last_sinh_luc_restore", "INTEGER DEFAULT 0"),
+            ("dao_hieu", "TEXT"),
+        ]
+
+        for col_name, col_type in required_columns:
             try:
-                await db.execute(f"ALTER TABLE players ADD COLUMN {col} {col_def}")
-            except Exception:
+                await db.execute(
+                    f"ALTER TABLE players ADD COLUMN {col_name} {col_type}"
+                )
+            except sqlite3.OperationalError:
                 pass  # Cột đã tồn tại
+
+        # Đảm bảo các bảng mới cho kỹ năng tồn tại
+        await db.execute(
+            """CREATE TABLE IF NOT EXISTS skills_master (
+            skill_id INTEGER PRIMARY KEY, name TEXT, element TEXT, 
+            base_multiplier REAL, stamina_cost INTEGER)"""
+        )
+        await db.execute(
+            """CREATE TABLE IF NOT EXISTS player_skills (
+            user_id TEXT, skill_id INTEGER, level INTEGER DEFAULT 1, 
+            PRIMARY KEY (user_id, skill_id))"""
+        )
+        await db.execute(
+            """CREATE TABLE IF NOT EXISTS player_equipped_skills (
+            user_id TEXT, slot INTEGER, skill_id INTEGER, 
+            PRIMARY KEY (user_id, slot))"""
+        )
+
         await db.commit()
 
 
@@ -168,44 +195,54 @@ async def update_player_stats(db_path, user_id):
     async with get_db(db_path) as db:
         cursor = await db.execute(
             "SELECT canh_gioi_id, the_luc, sinh_luc, last_the_luc_restore, last_sinh_luc_restore FROM players WHERE user_id = ?",
-            (str(user_id),),
+            (user_id,),
         )
         row = await cursor.fetchone()
+
         if not row:
-            return
+            return None
 
         cg_id, the_luc, sinh_luc, last_tl_time, last_sl_time = row
-        max_tl = 120
+        max_tl = 120  # V4 GOLD Limit
         max_sl = cg_id * 100
+        now = int(time.time())
 
-        # Nếu the_luc đang null do chưa update
-        if the_luc is None:
-            the_luc = 120
-        if sinh_luc is None:
-            sinh_luc = max_sl
-        if not last_tl_time:
-            last_tl_time = now
-        if not last_sl_time:
-            last_sl_time = now
-
-        # Tính thời gian trôi qua (giây)
-        sl_diff = int(now - last_sl_time)
-
+        # --- HỒI PHỤC THEO GIÂY (V4 GOLD) ---
         new_tl = the_luc
-        # Thể Lực: KHÔNG tự hồi theo giây nữa, đợi loop 5 phút của hệ thống
-
         new_sl = sinh_luc
+        new_last_tl = last_tl_time
         new_last_sl = last_sl_time
-        if sl_diff > 0 and sinh_luc < max_sl:
-            # Hồi 1% máu mỗi giây
-            heal_amount = int(max_sl * 0.01 * sl_diff)
-            new_sl = min(max_sl, sinh_luc + heal_amount)
+
+        # 1. Hồi Thể Lực (1 điểm / 1 giây)
+        if last_tl_time > 0:
+            tl_diff = now - last_tl_time
+            if tl_diff > 0 and the_luc < max_tl:
+                gain_tl = tl_diff  # 1s = 1pt
+                new_tl = min(max_tl, the_luc + gain_tl)
+                new_last_tl = now
+        else:
+            new_last_tl = now
+
+        # 2. Hồi Sinh Lực (1% / 1 giây)
+        if last_sl_time > 0:
+            sl_diff = now - last_sl_time
+            if sl_diff > 0 and sinh_luc < max_sl:
+                gain_sl = int(max_sl * 0.01 * sl_diff)
+                new_sl = min(max_sl, sinh_luc + gain_sl)
+                new_last_sl = now
+        else:
             new_last_sl = now
 
-        if new_sl != sinh_luc or not last_tl_time or not last_sl_time:
+        if new_tl != the_luc or new_sl != sinh_luc:
             await db.execute(
-                "UPDATE players SET the_luc = ?, sinh_luc = ?, last_the_luc_restore = ?, last_sinh_luc_restore = ? WHERE user_id = ?",
-                (new_tl, new_sl, new_last_tl, new_last_sl, str(user_id)),
+                "UPDATE players SET the_luc = ?, sinh_luc = ?, last_the_luc_restore = ?, last_sinh_luc_restore = ?, is_active = 1 WHERE user_id = ?",
+                (new_tl, new_sl, new_last_tl, new_last_sl, user_id),
+            )
+            await db.commit()
+        else:
+            # Vẫn update is_active cho người dùng vừa gõ lệnh
+            await db.execute(
+                "UPDATE players SET is_active = 1 WHERE user_id = ?", (user_id,)
             )
             await db.commit()
 

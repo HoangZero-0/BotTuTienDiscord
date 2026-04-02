@@ -83,8 +83,8 @@ class CongPhap(commands.Cog):
             learned_any = False
             learned_names = []
             for item_id, ten_vp, mo_ta in books:
-                # Trích xuất skill_id từ item_id (VD: 201 -> Skill 1)
-                skill_id = item_id - 200
+                # Trích xuất skill_id từ item_id (VD: 401 -> Skill 1)
+                skill_id = item_id - 400
 
                 # Check nếu đã học
                 c2 = await db.execute(
