@@ -100,7 +100,16 @@ def create_database():
 
     # Bảng Đấu Giá
     cursor.execute(
-        """CREATE TABLE IF NOT EXISTS auctions (auction_id INTEGER PRIMARY KEY AUTOINCREMENT, seller_id TEXT, item_id INTEGER, so_luong INTEGER, current_bid INTEGER, highest_bidder_id TEXT, end_time TIMESTAMP)"""
+        """CREATE TABLE IF NOT EXISTS auctions (
+            auction_id INTEGER PRIMARY KEY AUTOINCREMENT, 
+            seller_id TEXT, 
+            item_id INTEGER, 
+            so_luong INTEGER, 
+            current_bid INTEGER, 
+            buyout_price INTEGER DEFAULT 0,
+            highest_bidder_id TEXT, 
+            end_time TIMESTAMP
+        )"""
     )
 
     # Xóa dữ liệu cũ của các bảng Metadata để Seed lại (Giữ lại data người chơi)

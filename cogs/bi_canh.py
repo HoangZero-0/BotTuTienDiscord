@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import random
 import asyncio
-from utils import get_db
+from utils import get_db, update_player_stats
 
 
 class BiCanh(commands.Cog):

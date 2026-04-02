@@ -15,55 +15,53 @@ class HeThong(commands.Cog):
     @commands.command(name="trogiup", aliases=["help"])
     async def help_command(self, ctx):
         embed = discord.Embed(
-            title="📜 THIÊN ĐẠO QUY TẮC - BOT TU TIÊN V4 GOLD FULL",
-            description="Chào mừng đạo hữu đã bước chân vào con đường tu đạo đầy gian nan nhưng vinh quang.",
+            title="📊 DANH MỤC LỆNH & LUỒNG HOẠT ĐỘNG V4 GOLD FULL",
+            description="Chào mừng đạo hữu đã bước chân vào con đường tu đạo đầy vinh quang.",
             color=discord.Color.gold(),
         )
 
         embed.add_field(
             name="🧘 TU LUYỆN & THÔNG TIN",
-            value="`!tuluyen`: Tích lũy linh khí\n`!dotpha`: Đột phá cảnh giới\n`!doituvi`: Đổi Linh thạch lấy Tu vi\n`!me`: Xem danh thiếp tu sĩ\n`!top`: Bảng xếp hạng",
+            value="`!me`: Hồ sơ cá nhân\n`!top`: Bảng xếp hạng\n`!tuluyen`: Tu luyện tập trung\n`!dotpha`: Đột phá bình cảnh\n`!doituvi`: Đổi Linh thạch lấy Tu vi",
             inline=False,
         )
         embed.add_field(
             name="⚔️ CHIẾN ĐẤU & THỬ THÁCH",
-            value="`!sanboss`: Săn yêu thú\n`!bicanh`: Khám phá bí cảnh\n`!chemboss`: Trảm World Boss\n`!thachdau @`: PK Tỉ thí\n`!dosat @`: Đồ sát cướp bóc",
+            value="`!sanboss`: Săn yêu thú\n`!bicanh`: Khám phá bí cảnh\n`!chemboss`: Hợp lực trảm Boss\n`!thachdau @`: Tỷ thí PVP\n`!dosat @`: Đồ sát cướp đoạt",
             inline=False,
         )
         embed.add_field(
-            name="📚 CÔNG PHÁP & KỸ NĂNG",
-            value="`!hoc <id>`: Lĩnh ngộ bí kíp\n`!congphap`: Quản lý & Trang bị kỹ năng\n`!danphuong`: Xem công thức luyện đan\n`!luyendan <id>`: Luyện chế linh đan",
+            name="📚 CÔNG PHÁP & CHẾ TẠO",
+            value="`!hoc`: Lĩnh ngộ bí kíp\n`!congphap`: Quản lý kỹ năng\n`!danphuong`: Xem công thức\n`!luyendan`: Luyện linh đan",
             inline=False,
         )
         embed.add_field(
             name="🎒 VẬT PHẨM & TRANG BỊ",
-            value="`!tuido`: Xem hành trang\n`!use <id>`: Sử dụng/Trang bị\n`!thao <id>`: Gỡ trang bị",
+            value="`!tuido`: Tôn khố cá nhân\n`!use <id>`: Sử dụng/Trang bị\n`!thao <id>`: Tháo trang bị\n`!dancac`: Cửa hàng linh đan",
             inline=False,
         )
         embed.add_field(
-            name="💰 GIAO THƯƠNG & CHỢ ĐEN",
-            value="`!choden`: Xem chợ đen toàn giới\n`!ban <id> <giá>`: Treo đồ lên chợ\n`!chuyentien @ <lt>`: Chuyển Linh thạch\n`!giaodich @ <id> <giá>`: Bán đồ trực tiếp",
-            inline=False,
-        )
-        embed.add_field(
-            name="⚖️ ĐẤU GIÁ BẢO VẬT",
-            value="`!daugialist`: Xem danh sách đấu giá\n`!daugia <id> <giá>`: Đưa đồ lên sàn\n`!bid <id> <giá>`: Đặt thầu/Mua đứt",
+            name="💰 GIAO THƯƠNG & ĐẤU GIÁ",
+            value="`!ban <id>`: Treo Chợ Đen\n`!choden`: Xem Marketplace\n`!chuyentien @`: Chuyển tiền\n`!giaodich @`: Bán trực tiếp\n`!daugialist`: Sàn đấu giá\n`!daugia`: Mở đấu giá\n`!bid`: Trả giá thầu",
             inline=False,
         )
         embed.add_field(
             name="🤝 XÃ HỘI & TÔNG MÔN",
-            value="`!songtu @`: Kết đôi Đạo lữ\n`!lithu`: Ly hôn\n`!lapphai`: Lập tông môn\n`!moiphai @`: Mời đệ tử\n`!roiphai`: Rời tông\n`!xemphai`: Xem tông môn",
+            value="`!songtu @`: Kết đạo lữ\n`!lithu`: Ly hôn\n`!lapphai`: Lập tông môn\n`!moiphai @`: Mời đệ tử\n`!roiphai`: Rời môn phái\n`!xemphai`: Tin tông môn",
+            inline=False,
+        )
+        embed.add_field(
+            name="⚙️ HỆ THỐNG TỰ ĐỘNG",
+            value="• **Auto-Recovery**: Hồi 1 TL/s, 1% HP/s\n• **Boss**: Xuất hiện mỗi 2 giờ\n• **Flash Sale**: Mở shop mỗi 3 giờ\n• **Cơ Duyên**: Random rớt quà mỗi 30p\n• **Linh Thạch Rơi**: Gõ `!nhat` khi có thông báo",
             inline=False,
         )
         embed.add_field(
             name="🏪 THƯƠNG NHÂN & KHÁC",
-            value="`?shop`: Shop hệ thống (Bot Thương Nhân)\n`?buy <id>`: Mua đồ shop\n`!nhiemvu`: Nhiệm vụ ngày\n`!trogiup`: Hiện bảng này",
+            value="`?shop`: Chợ đen (Pháp tắc ?)\n`?buy <id>`: Mua đồ từ Merchant\n`!nhiemvu`: Nhiệm vụ ngày\n`!prefix`: Đổi tiền tố\n`!trogiup`: Hiện bảng này",
             inline=False,
         )
 
-        embed.set_footer(
-            text="Gợi Ý: Luyện đan và trang bị pháp bảo mạnh để chinh phục World Boss!"
-        )
+        embed.set_footer(text="⚔️ Tổng cộng: 36 lệnh chính thức | V4 GOLD FULL 🏆")
         await ctx.send(embed=embed)
 
 

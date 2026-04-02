@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import random
 import asyncio
-from utils import CleanID, get_db
+from utils import CleanID, get_db, update_player_stats
 
 
 class CheTao(commands.Cog):
@@ -48,7 +48,6 @@ class CheTao(commands.Cog):
         recipe = self.RECIPES[item_id]
 
         # 1. Cập nhật và lấy chỉ số (HP/TL)
-        from utils import update_player_stats
 
         res = await update_player_stats(self.db_path, user_id)
         if not res:
