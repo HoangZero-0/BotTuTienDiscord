@@ -77,7 +77,7 @@ class ThienDaoBot(commands.Bot):
 
     async def on_ready(self):
         print(f"---")
-        print(f"⛩️ Thiên Đạo [{self.user.name}] đã giáng lâm!")
+        print(f"⛩️ [{self.user.name}] đã giáng lâm!")
         print(f"🌍 Thế giới Tu Tiên đã sẵn sàng vận hành.")
         print(f"---")
 

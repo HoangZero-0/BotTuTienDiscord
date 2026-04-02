@@ -49,7 +49,7 @@ class ThuongNhanBot(commands.Bot):
 
     async def on_ready(self):
         print(f"---")
-        print(f"💰 Thương Nhân Vạn Giới [{self.user.name}] đã hạ phàm!")
+        print(f"💰 [{self.user.name}] đã hạ phàm!")
         print(f"🧐 Đang rình rập ID Thiên Đạo: {self.thiendao_id}")
         print(f"---")
 
