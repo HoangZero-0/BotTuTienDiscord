@@ -15,21 +15,18 @@ jobs:
         uses: actions/checkout@v3
 
       - name: 🚀 Upload to Pterodactyl
-        uses: xNul/pterodactyl-upload@v1.1.0
+        uses: rexlmanu/pterodactyl-upload-action@v2.1
         with:
-          panel-url: https://control.katabump.com
+          panel-host: https://control.katabump.com
           api-key: ${{ secrets.PTERODACTYL_API_KEY }}
           server-id: ${{ secrets.PTERODACTYL_SERVER_ID }}
-          # Loại bỏ các file không cần thiết khi upload
-          exclude: |
-            .git*
-            __pycache__
-            .env
-            tu_tien.db
+          source: .
+          target: / # Upload thẳng vào thư mục gốc của container
 
       - name: 🔄 Restart Server
-        uses: matthewnasby/pterodactyl-restart-action@v1.0.3
-        with:
-          panel-url: https://control.katabump.com
-          api-key: ${{ secrets.PTERODACTYL_API_KEY }}
-          server-id: ${{ secrets.PTERODACTYL_SERVER_ID }}
+        run: |
+          curl -X POST "https://control.katabump.com/api/client/servers/${{ secrets.PTERODACTYL_SERVER_ID }}/power" \
+            -H "Authorization: Bearer ${{ secrets.PTERODACTYL_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -d '{"signal": "restart"}'
