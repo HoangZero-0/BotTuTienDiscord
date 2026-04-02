@@ -54,6 +54,7 @@ class ThienDaoBot(commands.Bot):
             "cogs.dan_cac",
             "cogs.cong_phap",
             "cogs.pvp",
+            "cogs.do_sat",
         ]
         for ext in extensions:
             try:
