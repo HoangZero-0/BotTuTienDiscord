@@ -121,8 +121,8 @@ class CheTao(commands.Cog):
             pc_row = await pc.fetchone()
             dan_grade = pc_row[0] if pc_row else 1
 
-            # Mỗi phẩm cấp tương ứng ~khoảng cảnh giới: pc1=cg1-3, pc2=cg4-6, pc3=cg7-12, pc4=cg13-18, pc5=cg19-24
-            grade_to_min_cg = {1: 1, 2: 4, 3: 7, 4: 13, 5: 19}
+            # Cập nhật cho 66 cảnh giới: pc1=1-12, pc2=13-24, pc3=25-36, pc4=37-48, pc5=49-66
+            grade_to_min_cg = {1: 1, 2: 13, 3: 25, 4: 37, 5: 49}
             target_cg = grade_to_min_cg.get(dan_grade, 1)
             cg_diff = player_cg - target_cg  # Dương = mạnh hơn, Âm = yếu hơn
 

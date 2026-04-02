@@ -54,19 +54,25 @@ class SuKien(commands.Cog):
             "Minh Vương Huyết Hải",
         ]
         self.world_boss["name"] = random.choice(boss_names)
-        self.world_boss["max_hp"] = random.randint(3000000, 10000000)
+        # World Boss HP: Scale theo 66 cảnh giới. Level 66 chuẩn ~40 tỷ.
+        # Ta để HP dao động từ 10M (lv1) đến 100 tỷ (lv66)
+        boss_tier = random.randint(10, 66)
+        boss_hp_base = int(5000 * (1.35**boss_tier))
+        self.world_boss["max_hp"] = boss_hp_base
         self.world_boss["hp"] = self.world_boss["max_hp"]
-        self.world_boss["reward"] = random.randint(20000, 50000)  # Quỹ thưởng chung
+        self.world_boss["reward"] = (
+            int(boss_hp_base / 100000) + 50000
+        )  # Quỹ thưởng phù hợp
         self.world_boss["damage_log"] = {}
 
         embed = discord.Embed(
             title="🚨 CẢNH BÁO THẾ GIỚI 🚨", color=discord.Color.red()
         )
         embed.description = (
-            f"⚔️ **{self.world_boss['name']}** vừa giáng thế tàn phá nhân gian!\n\n"
+            f"⚔️ **{self.world_boss['name']}** (Bậc {boss_tier}) vừa giáng thế tàn phá nhân gian!\n\n"
             f"🩸 Máu: **{self.world_boss['hp']:,}**\n"
-            f"💰 Quỹ thưởng: **{self.world_boss['reward']:,} LT** (Chia theo dame)\n"
-            f"🎁 Thưởng kết liễu: **5,000 LT**\n"
+            f"💰 Quỹ thưởng: **{self.world_boss['reward']:,} LT**\n"
+            f"🎁 Thưởng kết liễu: **10,000 LT**\n"
             f"👉 Gõ `!chemboss` để trấn áp!"
         )
         embed.set_image(
@@ -270,7 +276,7 @@ class SuKien(commands.Cog):
                 content="🏜️ Linh thạch đã bị gió cuốn trôi, không ai nhặt được."
             )
 
-    @tasks.loop(hours=1)
+    @tasks.loop(minutes=30)
     async def random_drop(self):
         """Rơi Linh Thạch ngẫu nhiên vào kênh - Ai nhặt nhanh thì được"""
         if random.random() < 0.4:  # 40% tỉ lệ mỗi giờ

@@ -51,6 +51,9 @@ class ThienDaoBot(commands.Bot):
             "cogs.nhiem_vu",
             "cogs.dau_gia",
             "cogs.su_kien",
+            "cogs.dan_cac",
+            "cogs.cong_phap",
+            "cogs.pvp",
         ]
         for ext in extensions:
             try:
@@ -76,8 +79,11 @@ class ThienDaoBot(commands.Bot):
         await self.process_commands(message)
 
     async def on_ready(self):
+        from utils import setup_db_columns
+
+        await setup_db_columns(self.db_path)
         print(f"---")
-        print(f"⛩️ [{self.user.name}] đã giáng lâm!")
+        print(f"⛩️ Thiên Đạo [{self.user.name}] đã giáng lâm!")
         print(f"🌍 Thế giới Tu Tiên đã sẵn sàng vận hành.")
         print(f"---")
 

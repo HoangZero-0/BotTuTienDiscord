@@ -134,14 +134,14 @@ class SanBoss(commands.Cog):
             cg_id, base_cp, buff_cp, the_luc = player
             cp = base_cp + (buff_cp or 0)
 
-            if the_luc < 10:
+            if the_luc < 3:
                 return await ctx.send(
-                    "⚠️ Thể lực quá yếu, ngài cần ít nhất **10 Thể Lực** để mạo hiểm!"
+                    "⚠️ Thể lực quá yếu, ngài cần ít nhất **3 Thể Lực** để mạo hiểm!"
                 )
 
             # V3: Lấy tất cả boss trong khoảng cảnh giới hợp lý (±3 cảnh)
             min_cg = max(1, cg_id - 3)
-            max_cg = min(24, cg_id + 3)
+            max_cg = min(66, cg_id + 3)
             cursor = await db.execute(
                 "SELECT * FROM boss_monster_master WHERE canh_gioi_yeu_cau BETWEEN ? AND ?",
                 (min_cg, max_cg),
@@ -261,11 +261,11 @@ class SanBoss(commands.Cog):
                     received = f"\n🎁 Nhận thêm: **{item_name}**"
 
                 await db.execute(
-                    "UPDATE players SET linh_thach = linh_thach + ?, the_luc = max(0, the_luc - 10) WHERE user_id = ?",
+                    "UPDATE players SET linh_thach = linh_thach + ?, the_luc = max(0, the_luc - 3) WHERE user_id = ?",
                     (gold, user_id),
                 )
                 await db.commit()
-                battle_log += f"\n🏆 **THẮNG!** {b_ten} đã trở về cát bụi!\n💰 Nhận: **{gold:,} Linh Thạch**\n🔋 Tiêu hao: **-10 Thể Lực**{received}"
+                battle_log += f"\n🏆 **THẮNG!** {b_ten} đã trở về cát bụi!\n💰 Nhận: **{gold:,} Linh Thạch**\n🔋 Tiêu hao: **-3 Thể Lực**{received}"
             else:
                 win = False
                 # V3: Trừ Linh Thạch + Trừ % Thể Lực + 10% rơi đồ

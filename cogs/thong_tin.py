@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from utils import get_db
+from utils import get_db, update_player_stats
 
 
 class ThongTin(commands.Cog):
@@ -12,23 +12,29 @@ class ThongTin(commands.Cog):
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def profile(self, ctx):
         user_id = str(ctx.author.id)
+
+        # 0. Cập nhật và lấy chỉ số HP/TL
+        res = await update_player_stats(self.db_path, user_id)
+        if not res:
+            return await ctx.send(
+                "❌ Đạo hữu chưa có danh tánh trong sổ Thiên Đạo. Hãy gõ `!tuluyen` trước!"
+            )
+
+        tl, sl, max_tl, max_sl = res
+
         async with get_db(self.db_path) as db:
             cursor = await db.execute(
                 """
-                SELECT p.tu_vi, p.luc_chien_goc, p.linh_thach, p.the_luc, r.ten_canh_gioi, r.tu_vi_can_thiet 
+                SELECT p.tu_vi, p.luc_chien_goc, p.linh_thach, r.ten_canh_gioi, r.tu_vi_can_thiet, p.dao_hieu 
                 FROM players p JOIN realms_master r ON p.canh_gioi_id = r.canh_gioi_id 
                 WHERE p.user_id = ?""",
                 (user_id,),
             )
             row = await cursor.fetchone()
-
             if not row:
-                await ctx.send(
-                    "❌ Đạo hữu chưa có danh tánh trong sổ Thiên Đạo. Hãy gõ `!tuluyen` trước!"
-                )
                 return
 
-            tv, cs, lt, tl, ten_cg, tv_max = row
+            tv, cs, lt, ten_cg, tv_max, dao_hieu = row
 
             # Lấy LC từ trang bị
             cursor = await db.execute(
@@ -70,27 +76,39 @@ class ThongTin(commands.Cog):
                 perc = min(100, (curr / mx) * 100)
                 filled = int(perc / 10)
                 return (
-                    "🟢" * filled + "⬜" * (10 - filled)
+                    "🟩" * filled + "⬜" * (10 - filled)
                     if color == "HP"
-                    else "🟦" * filled + "⬜" * (10 - filled)
+                    else (
+                        "🟧" * filled + "⬜" * (10 - filled)
+                        if color == "TL"
+                        else "🟦" * filled + "⬜" * (10 - filled)
+                    )
                 )
 
-            hp_bar = get_prog_bar(tl, 100, "HP")
+            hp_bar = get_prog_bar(sl, max_sl, "HP")
+            tl_bar = get_prog_bar(tl, max_tl, "TL")
             tv_bar = get_prog_bar(tv, tv_max)
 
-            embed = discord.Embed(
-                title=f"📜 TU TIÊN DANH THIẾP: {ctx.author.name}",
-                color=discord.Color.gold(),
+            title_name = (
+                f"📜 TU TIÊN DANH THIẾP: {dao_hieu if dao_hieu else ctx.author.name}"
             )
+            embed = discord.Embed(title=title_name, color=discord.Color.gold())
             embed.set_thumbnail(url=ctx.author.display_avatar.url)
 
             embed.add_field(name="☯️ Cảnh Giới", value=f"**{ten_cg}**", inline=True)
             embed.add_field(name="💰 Linh Thạch", value=f"**{lt:,}**", inline=True)
+
             embed.add_field(
                 name="🩸 Sinh Lực (HP)",
-                value=f"`[{hp_bar}]` **{tl}/100**",
+                value=f"`[{hp_bar}]` **{sl:,}/{max_sl:,}**",
                 inline=False,
             )
+            embed.add_field(
+                name="⚡ Khí Lực (Thể Lực)",
+                value=f"`[{tl_bar}]` **{tl}/{max_tl}**",
+                inline=False,
+            )
+
             embed.add_field(
                 name="✨ Linh Khí (Tu Vi)",
                 value=f"`[{tv_bar}]` **{tv:,}/{tv_max:,}**\n*(Đầy linh khí để đột phá)*",
@@ -107,7 +125,7 @@ class ThongTin(commands.Cog):
             embed.add_field(name="🏯 Tông Môn", value=tong_mon_text, inline=True)
 
             embed.set_footer(
-                text="Hệ Thống Bot Tu Tiên V3 | Gõ !tuido để xem hành trang"
+                text="Hệ Thống Bot Tu Tiên V4 | Gõ !tuido để xem hành trang"
             )
             await ctx.send(embed=embed)
 

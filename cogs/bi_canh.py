@@ -61,9 +61,9 @@ class BiCanh(commands.Cog):
             cg_id, tu_vi, luc_chien, the_luc, linh_thach = row
 
             # --- CHI PHÍ VÀO BÍ CẢNH ---
-            if the_luc < 5:
+            if the_luc < 10:
                 return await ctx.send(
-                    "⚠️ Cần tối thiểu **5 Thể Lực** để thám hiểm bí cảnh!"
+                    "⚠️ Cần tối thiểu **10 Thể Lực** để thám hiểm bí cảnh!"
                 )
 
             # Chi phí Linh Thạch: 2% linh thạch hiện có, tối thiểu 10
@@ -75,7 +75,7 @@ class BiCanh(commands.Cog):
 
             # Trừ chi phí
             await db.execute(
-                "UPDATE players SET the_luc = the_luc - 5, linh_thach = linh_thach - ? WHERE user_id = ?",
+                "UPDATE players SET the_luc = the_luc - 10, linh_thach = linh_thach - ? WHERE user_id = ?",
                 (lt_cost, user_id),
             )
 
