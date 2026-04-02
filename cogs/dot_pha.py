@@ -107,7 +107,7 @@ class DoKiep(commands.Cog):
                     multiplier = 1.5 if co_loikiep else 1.1
                     new_cs = int(cs * multiplier)
                     await db.execute(
-                        "UPDATE players SET canh_gioi_id = canh_gioi_id + 1, tu_vi = 0, luc_chien_goc = ? WHERE user_id = ?",
+                        "UPDATE players SET canh_gioi_id = canh_gioi_id + 1, tu_vi = 0, luc_chien_goc = ?, the_luc = 120, sinh_luc = (canh_gioi_id + 1) * 100 WHERE user_id = ?",
                         (new_cs, user_id),
                     )
 

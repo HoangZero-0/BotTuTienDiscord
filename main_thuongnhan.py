@@ -61,6 +61,10 @@ class ThuongNhanBot(commands.Bot):
                 f"⏳ Đạo hữu vội vã quá, linh thạch chưa kịp đếm xong. Đợi {error.retry_after:.1f} giây nhé.",
             ]
             await ctx.send(random.choice(quotes))
+        elif isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(
+                f"⚠️ Thiếu thông tin! Cú pháp: `{ctx.prefix}{ctx.command.name} {ctx.command.signature}`"
+            )
         elif not isinstance(error, commands.CommandNotFound):
             print(f"⚠️ Lỗi Thương Nhân: {error}")
 

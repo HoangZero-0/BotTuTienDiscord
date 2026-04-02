@@ -103,9 +103,11 @@ class ThienDaoBot(commands.Bot):
                 f"⏳ Đang hồi sức! Đạo hữu làm gì mà như bị truy sát vậy? {error.retry_after:.1f} giây nữa nhé.",
             ]
             await ctx.send(random.choice(vui_ve))
-        elif isinstance(error, commands.CommandNotFound):
-            pass  # Bỏ qua lỗi gõ sai lệnh để tránh spam
-        else:
+        elif isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(
+                f"❌ Thiếu thông tin! Cú pháp chuẩn là: `{ctx.prefix}{ctx.command.name} {ctx.command.signature}`"
+            )
+        elif not isinstance(error, commands.CommandNotFound):
             import traceback
 
             traceback.print_exception(type(error), error, error.__traceback__)
