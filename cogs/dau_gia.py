@@ -33,7 +33,7 @@ class DauGia(commands.Cog):
             except:
                 pass
 
-    @tasks.loop(seconds=15)
+    @tasks.loop(minutes=10)
     async def auction_manager(self):
         """Tự động kiểm tra và kết thúc đấu giá"""
         async with get_db(self.db_path) as db:
@@ -128,7 +128,7 @@ class DauGia(commands.Cog):
                     await ch.send(embed=embed)
 
     @commands.command(name="daugia")
-    @commands.cooldown(1, 10, commands.BucketType.user)
+    @commands.cooldown(1, 30, commands.BucketType.user)
     async def start_auction(
         self,
         ctx,
@@ -183,7 +183,7 @@ class DauGia(commands.Cog):
             )
 
     @commands.command(name="bid")
-    @commands.cooldown(1, 2, commands.BucketType.user)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def place_bid(self, ctx, auction_id: CleanID, amount: CleanInt):
         """Đặt thầu hoặc Mua đứt. !bid <phiên> <số_tiền>"""
         user_id = str(ctx.author.id)

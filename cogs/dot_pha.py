@@ -48,13 +48,27 @@ class DoKiep(commands.Cog):
                 # 2. KIỂM TRA ĐAN DƯỢC HỖ TRỢ
                 p_dan = 0
                 dan_mapping = {
-                    4: 103,
-                    7: 105,
-                    10: 107,
-                    13: 109,
+                    4: 103,  # Trúc Cơ
+                    7: 105,  # Kết Đan
+                    10: 107,  # Nguyên Anh
+                    13: 109,  # Hóa Thần
                     16: 109,
                     19: 109,
                     22: 109,
+                    25: 109,  # Phản Hư
+                    28: 109,
+                    31: 109,  # Đại Thừa
+                    34: 109,
+                    37: 109,  # Địa Tiên
+                    40: 109,
+                    43: 109,  # Thiên Tiên
+                    46: 110,  # Tiên Quân (Cần Hoàn Hồn Đan)
+                    49: 110,
+                    52: 110,  # Tiên Đế
+                    55: 110,
+                    58: 110,  # Thần Quân
+                    61: 110,
+                    64: 110,  # Thần Đế (Đỉnh phong)
                 }
                 dan_id = dan_mapping.get(cg_id + 1)
 
@@ -80,7 +94,7 @@ class DoKiep(commands.Cog):
                     has_protector = True
 
                 p_tong = p_goc + p_thuong + p_dan
-                p_loikiep = min(1.0, (cg_id / 24))
+                p_loikiep = min(1.0, (cg_id / 66))
                 co_loikiep = random.random() < p_loikiep
                 success_roll = random.random() < p_tong
 

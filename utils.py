@@ -135,3 +135,78 @@ class CleanInt(commands.Converter):
         if not cleaned:
             raise commands.BadArgument(f'Giá trị "{argument}" không phải là số hợp lệ.')
         return int(cleaned)
+
+
+async def setup_db_columns(db_path):
+    async with get_db(db_path) as db:
+        new_cols = {
+            "dao_hieu": "TEXT DEFAULT NULL",
+            "sinh_luc": "INTEGER DEFAULT 100",
+            "the_luc": "INTEGER DEFAULT 120",
+            "last_the_luc_restore": "REAL DEFAULT 0",
+            "last_sinh_luc_restore": "REAL DEFAULT 0",
+            "current_boss_id": "INTEGER DEFAULT 0",
+            "current_boss_hp": "INTEGER DEFAULT 0",
+            "is_active": "INTEGER DEFAULT 0",
+        }
+        for col, col_def in new_cols.items():
+            try:
+                await db.execute(f"ALTER TABLE players ADD COLUMN {col} {col_def}")
+            except Exception:
+                pass  # Cột đã tồn tại
+        await db.commit()
+
+
+async def update_player_stats(db_path, user_id):
+    """
+    Cập nhật sinh lực và thể lực dựa trên thời gian trôi qua.
+    1 giây hồi 1 điểm. Thể lực max 120. Sinh lực max = canh_gioi_id * 100.
+    """
+    import time
+
+    now = time.time()
+    async with get_db(db_path) as db:
+        cursor = await db.execute(
+            "SELECT canh_gioi_id, the_luc, sinh_luc, last_the_luc_restore, last_sinh_luc_restore FROM players WHERE user_id = ?",
+            (str(user_id),),
+        )
+        row = await cursor.fetchone()
+        if not row:
+            return
+
+        cg_id, the_luc, sinh_luc, last_tl_time, last_sl_time = row
+        max_tl = 120
+        max_sl = cg_id * 100
+
+        # Nếu the_luc đang null do chưa update
+        if the_luc is None:
+            the_luc = 120
+        if sinh_luc is None:
+            sinh_luc = max_sl
+        if not last_tl_time:
+            last_tl_time = now
+        if not last_sl_time:
+            last_sl_time = now
+
+        # Tính thời gian trôi qua (giây)
+        sl_diff = int(now - last_sl_time)
+
+        new_tl = the_luc
+        # Thể Lực: KHÔNG tự hồi theo giây nữa, đợi loop 5 phút của hệ thống
+
+        new_sl = sinh_luc
+        new_last_sl = last_sl_time
+        if sl_diff > 0 and sinh_luc < max_sl:
+            # Hồi 1% máu mỗi giây
+            heal_amount = int(max_sl * 0.01 * sl_diff)
+            new_sl = min(max_sl, sinh_luc + heal_amount)
+            new_last_sl = now
+
+        if new_sl != sinh_luc or not last_tl_time or not last_sl_time:
+            await db.execute(
+                "UPDATE players SET the_luc = ?, sinh_luc = ?, last_the_luc_restore = ?, last_sinh_luc_restore = ? WHERE user_id = ?",
+                (new_tl, new_sl, new_last_tl, new_last_sl, str(user_id)),
+            )
+            await db.commit()
+
+        return new_tl, new_sl, max_tl, max_sl

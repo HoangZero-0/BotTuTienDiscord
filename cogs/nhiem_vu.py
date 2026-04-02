@@ -10,7 +10,7 @@ class NhiemVu(commands.Cog):
         self.db_path = "tu_tien.db"
 
     @commands.command(name="nhiemvu")
-    @commands.cooldown(1, 5, commands.BucketType.user)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def list_quests(self, ctx):
         user_id = str(ctx.author.id)
         today = str(date.today())
