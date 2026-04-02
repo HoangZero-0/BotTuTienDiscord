@@ -14,14 +14,18 @@ jobs:
       - name: 🚚 Checkout code
         uses: actions/checkout@v3
 
-      - name: 🚀 Upload to Pterodactyl
-        uses: rexlmanu/pterodactyl-upload-action@v2.1
+      - name: 🚀 Upload to Katabump via SFTP
+        uses: appleboy/scp-action@master
         with:
-          panel-host: https://control.katabump.com
-          api-key: ${{ secrets.PTERODACTYL_API_KEY }}
-          server-id: ${{ secrets.PTERODACTYL_SERVER_ID }}
-          source: .
-          target: / # Upload thẳng vào thư mục gốc của container
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USER }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT }}
+          source: "."
+          target: "/home/container"
+          rm: false # Không xóa file cũ, chỉ ghi đè
+          strip_components: 0
+          exclude: ".git*,.github*,__pycache__,.env,tu_tien.db"
 
       - name: 🔄 Restart Server
         run: |
