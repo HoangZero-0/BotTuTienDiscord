@@ -14,23 +14,35 @@ jobs:
       - name: 🚚 Checkout code
         uses: actions/checkout@v3
 
-      - name: 🚀 Upload to Katabump via SFTP
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SFTP_HOST }}
-          username: ${{ secrets.SFTP_USER }}
-          password: ${{ secrets.SFTP_PASSWORD }}
-          port: ${{ secrets.SFTP_PORT }}
-          source: "."
-          target: "/home/container"
-          rm: false # Không xóa file cũ, chỉ ghi đè
-          strip_components: 0
-          exclude: ".git*,.github*,__pycache__,.env,tu_tien.db"
+      - name: � Zip files for deployment
+        run: |
+          zip -r deploy.zip . -x "*.git*" "*__pycache__*" ".env" "tu_tien.db" ".github*"
+
+      - name: 🚀 Upload and Deploy via API
+        run: |
+          # 1. Lấy URL để Upload
+          UPLOAD_URL=$(curl -s -X GET "https://control.katabump.com/api/client/servers/${{ secrets.PTERODACTYL_SERVER_ID }}/files/upload" \
+            -H "Authorization: Bearer ${{ secrets.PTERODACTYL_API_KEY }}" \
+            -H "Accept: application/json" | jq -r .attributes.url)
+
+          # 2. Upload file nén lên server
+          curl -s -F "files=@deploy.zip" "$UPLOAD_URL&directory=/"
+
+          # 3. Ra lệnh giải nén trên server
+          curl -s -X POST "https://control.katabump.com/api/client/servers/${{ secrets.PTERODACTYL_SERVER_ID }}/files/decompress" \
+            -H "Authorization: Bearer ${{ secrets.PTERODACTYL_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"root\": \"/\", \"file\": \"deploy.zip\"}"
+
+          # 4. Xóa file zip sau khi giải nén (Dọn dẹp server)
+          curl -s -X POST "https://control.katabump.com/api/client/servers/${{ secrets.PTERODACTYL_SERVER_ID }}/files/delete" \
+            -H "Authorization: Bearer ${{ secrets.PTERODACTYL_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"root\": \"/\", \"files\": [\"deploy.zip\"]}"
 
       - name: 🔄 Restart Server
         run: |
-          curl -X POST "https://control.katabump.com/api/client/servers/${{ secrets.PTERODACTYL_SERVER_ID }}/power" \
+          curl -s -X POST "https://control.katabump.com/api/client/servers/${{ secrets.PTERODACTYL_SERVER_ID }}/power" \
             -H "Authorization: Bearer ${{ secrets.PTERODACTYL_API_KEY }}" \
             -H "Content-Type: application/json" \
-            -H "Accept: application/json" \
             -d '{"signal": "restart"}'
