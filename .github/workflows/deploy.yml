@@ -20,21 +20,36 @@ jobs:
 
       - name: 🚀 Upload and Deploy via API
         run: |
+      - name: 🚀 Upload and Deploy via API
+        run: |
           # 1. Lấy URL để Upload
-          UPLOAD_URL=$(curl -s -X GET "https://control.katabump.com/api/client/servers/${{ secrets.PTERODACTYL_SERVER_ID }}/files/upload" \
+          JSON_RES=$(curl -s -X GET "https://control.katabump.com/api/client/servers/${{ secrets.PTERODACTYL_SERVER_ID }}/files/upload" \
             -H "Authorization: Bearer ${{ secrets.PTERODACTYL_API_KEY }}" \
-            -H "Accept: application/json" | jq -r .attributes.url)
+            -H "Accept: application/json")
+          UPLOAD_URL=$(echo $JSON_RES | jq -r .attributes.url)
 
-          # 2. Upload file nén lên server (Sử dụng -v để xem log nếu lỗi)
-          curl -s -v -F "files=@deploy.zip" "$UPLOAD_URL&directory=/"
+          if [ "$UPLOAD_URL" == "null" ] || [ -z "$UPLOAD_URL" ]; then
+            echo "❌ LỖI: Không lấy được URL Upload. Kiểm tra API Key và Server ID!"
+            echo "Phản hồi từ API: $JSON_RES"
+            exit 1
+          fi
 
-          # 3. Ra lệnh giải nén bản mới (Đã bỏ bước xóa cũ để an toàn)
-          curl -s -X POST "https://control.katabump.com/api/client/servers/${{ secrets.PTERODACTYL_SERVER_ID }}/files/decompress" \
+          # 2. Upload file nén lên server (Sử dụng VERBOSE để xem log chi tiết)
+          echo "📤 Đang tải file lên Katabump..."
+          curl -v -F "files=@deploy.zip" "$UPLOAD_URL&directory=/"
+
+          # 3. Chờ 3 giây để hệ thống file cập nhật (Safety)
+          sleep 3
+
+          # 4. Ra lệnh giải nén (Decompress)
+          echo "📦 Đang giải nén file trên máy chủ..."
+          DECOMPRESS_RES=$(curl -s -X POST "https://control.katabump.com/api/client/servers/${{ secrets.PTERODACTYL_SERVER_ID }}/files/decompress" \
             -H "Authorization: Bearer ${{ secrets.PTERODACTYL_API_KEY }}" \
             -H "Content-Type: application/json" \
-            -d "{\"root\": \"/\", \"file\": \"deploy.zip\"}"
+            -d "{\"root\": \"/\", \"file\": \"deploy.zip\"}")
+          echo "Kết quả giải nén: $DECOMPRESS_RES"
 
-          # 4. Xóa file zip sau khi giải nén thành công
+          # 5. Xóa file zip sau khi giải nén
           curl -s -X POST "https://control.katabump.com/api/client/servers/${{ secrets.PTERODACTYL_SERVER_ID }}/files/delete" \
             -H "Authorization: Bearer ${{ secrets.PTERODACTYL_API_KEY }}" \
             -H "Content-Type: application/json" \
